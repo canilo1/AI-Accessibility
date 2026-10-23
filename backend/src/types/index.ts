@@ -7,6 +7,12 @@ export interface Taxpayer {
   registered_at: string;
 }
 
+export interface ThirdPartyIncomeRecord {
+  source_type: 'W-2' | '1099' | 'K-1' | 'other';
+  payer_name: string;
+  reported_income: number;
+}
+
 export interface TaxReturn {
   id: number;
   taxpayer_id: number;
@@ -19,6 +25,7 @@ export interface TaxReturn {
   num_dependents: number;
   business_expenses: number;
   charitable_donations: number;
+  third_party_income_records?: ThirdPartyIncomeRecord[];
   /**
    * Status lifecycle:
    *   pending → flagged (auto, by engine)

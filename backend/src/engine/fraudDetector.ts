@@ -133,6 +133,37 @@ const RULES: Rule[] = [
     },
   },
   {
+    code: 'THIRD_PARTY_INCOME_MISMATCH',
+    check: (r) => {
+      const records = r.third_party_income_records ?? [];
+      if (records.length === 0) return null;
+
+      const reportedIncome = records.reduce((total, record) => total + record.reported_income, 0);
+      const difference = Math.abs(r.gross_income - reportedIncome);
+      const threshold = Math.max(1000, reportedIncome * 0.05);
+      if (difference <= threshold) return null;
+
+      return {
+        rule_code: 'THIRD_PARTY_INCOME_MISMATCH',
+        description: `Reported gross income ($${r.gross_income.toLocaleString()}) differs from attached third-party records ($${reportedIncome.toLocaleString()}) by $${difference.toLocaleString()}.`,
+        plain_explanation: `The income on this return does not closely match the W-2, 1099, K-1, or other records attached for comparison. Records may be incomplete or require correction, so this discrepancy is a lead for human review, not a finding of fraud.`,
+        severity: difference > Math.max(10000, reportedIncome * 0.1) ? 'high' : 'medium',
+      };
+    },
+  },
+  {
+    code: 'DUPLICATE_TAX_YEAR_RETURN',
+    check: (r, history) => {
+      if (!history.some((previous) => previous.tax_year === r.tax_year)) return null;
+      return {
+        rule_code: 'DUPLICATE_TAX_YEAR_RETURN',
+        description: `More than one return is recorded for tax year ${r.tax_year}.`,
+        plain_explanation: `A second filing for the same taxpayer and year may be an amended return or a duplicate submission. Confirm the filing type and history before taking any action.`,
+        severity: 'medium',
+      };
+    },
+  },
+  {
     code: 'SUDDEN_INCOME_DROP',
     check: (r, history) => {
       const prev = history.find((h) => h.tax_year === r.tax_year - 1);

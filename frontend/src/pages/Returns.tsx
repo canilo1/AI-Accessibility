@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import type { TaxReturn, Taxpayer } from '../types';
+import type { TaxReturn, Taxpayer, ThirdPartyIncomeRecord } from '../types';
 import { StatusBadge } from '../components/Badges';
 
 const card = {
@@ -44,6 +44,7 @@ export function Returns({
   const [list, setList]           = useState<TaxReturn[]>([]);
   const [taxpayers, setTaxpayers] = useState<Taxpayer[]>([]);
   const [form, setForm]           = useState<FormData>(emptyForm);
+  const [incomeRecords, setIncomeRecords] = useState<ThirdPartyIncomeRecord[]>([]);
   const [showForm, setShowForm]   = useState(false);
   const [error, setError]         = useState('');
   const [analyzing, setAnalyzing] = useState<number | null>(null);
@@ -63,8 +64,9 @@ export function Returns({
     e.preventDefault();
     setError('');
     try {
-      await api.createReturn(form);
+      await api.createReturn({ ...form, third_party_income_records: incomeRecords });
       setForm(emptyForm);
+      setIncomeRecords([]);
       setShowForm(false);
       load();
     } catch (err: unknown) {
@@ -148,6 +150,35 @@ export function Returns({
                 />
               </label>
             ))}
+            <section style={{ gridColumn: '1 / -1', borderTop: '1px solid #e5e7eb', paddingTop: 12 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: 14 }}>Third-party income records</h4>
+                  <p style={{ margin: '4px 0 0', color: '#6b7280', fontSize: 12 }}>Optional W-2, 1099, K-1, or other reports for income matching.</p>
+                </div>
+                <button type="button" onClick={() => setIncomeRecords((records) => [...records, { source_type: 'W-2', payer_name: '', reported_income: 0 }])}
+                  style={{ padding: '6px 10px', border: '1px solid #9ca3af', borderRadius: 6, background: '#fff', cursor: 'pointer', fontSize: 12 }}>
+                  Add income record
+                </button>
+              </div>
+              {incomeRecords.map((record, index) => (
+                <div key={index} style={{ display: 'grid', gridTemplateColumns: 'minmax(100px, 0.7fr) minmax(140px, 1.4fr) minmax(120px, 1fr) auto', gap: 8, marginTop: 10, alignItems: 'center' }}>
+                  <select aria-label="Income record type" value={record.source_type}
+                    onChange={(e) => setIncomeRecords((records) => records.map((item, i) => i === index ? { ...item, source_type: e.target.value as ThirdPartyIncomeRecord['source_type'] } : item))}
+                    style={{ minWidth: 0, padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: 6 }}>
+                    <option>W-2</option><option>1099</option><option>K-1</option><option value="other">Other</option>
+                  </select>
+                  <input aria-label="Payer name" placeholder="Employer or payer" value={record.payer_name}
+                    onChange={(e) => setIncomeRecords((records) => records.map((item, i) => i === index ? { ...item, payer_name: e.target.value } : item))}
+                    style={{ minWidth: 0, padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                  <input aria-label="Reported income amount" type="number" min={0} step="0.01" value={record.reported_income}
+                    onChange={(e) => setIncomeRecords((records) => records.map((item, i) => i === index ? { ...item, reported_income: Number(e.target.value) } : item))}
+                    style={{ minWidth: 0, padding: '7px 8px', border: '1px solid #d1d5db', borderRadius: 6 }} />
+                  <button type="button" aria-label="Remove income record" onClick={() => setIncomeRecords((records) => records.filter((_, i) => i !== index))}
+                    style={{ padding: '6px 8px', border: '1px solid #d1d5db', borderRadius: 6, background: '#fff', cursor: 'pointer' }}>Remove</button>
+                </div>
+              ))}
+            </section>
             <div style={{ gridColumn: '1 / -1', display: 'flex', gap: 8 }}>
               <button type="submit" style={{ padding: '8px 20px', borderRadius: 8, border: 'none', background: '#2563eb', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>
                 Submit & Analyze

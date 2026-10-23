@@ -132,6 +132,19 @@ export function ReturnDetail({ returnId, onBack }: { returnId: number; onBack: (
           <Row label="Business Expenses"    value={`$${data.business_expenses.toLocaleString()}`} />
           <Row label="Charitable Donations" value={`$${data.charitable_donations.toLocaleString()}`} />
           <Row label="Dependents"           value={data.num_dependents} />
+          <div style={{ marginTop: 14, paddingTop: 10, borderTop: '1px solid #e5e7eb' }}>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 6 }}>Income source matching</div>
+            {(data.third_party_income_records ?? []).length === 0 ? (
+              <p style={{ margin: 0, color: '#6b7280', fontSize: 12 }}>No third-party records attached.</p>
+            ) : (
+              <>
+                {(data.third_party_income_records ?? []).map((record, index) => (
+                  <Row key={`${record.source_type}-${record.payer_name}-${index}`} label={`${record.source_type} · ${record.payer_name}`} value={`$${record.reported_income.toLocaleString()}`} />
+                ))}
+                <Row label="Total reported by sources" value={`$${(data.third_party_income_records ?? []).reduce((total, record) => total + record.reported_income, 0).toLocaleString()}`} />
+              </>
+            )}
+          </div>
           {data.actioned_by && (
             <>
               <Row label="Last actioned by" value={data.actioned_by} />

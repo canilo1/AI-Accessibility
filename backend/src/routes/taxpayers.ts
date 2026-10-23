@@ -22,10 +22,14 @@ router.post('/', (req: Request, res: Response) => {
   if (!tin || !name || !email) {
     return res.status(400).json({ error: 'tin, name, and email are required' });
   }
-  if (taxpayersDb.getByTin(tin)) {
+  const normalizedTin = tin.trim().toUpperCase();
+  if (!normalizedTin) {
+    return res.status(400).json({ error: 'tin must contain a value' });
+  }
+  if (taxpayersDb.all().some((taxpayer) => taxpayer.tin.trim().toUpperCase() === normalizedTin)) {
     return res.status(409).json({ error: 'A taxpayer with this TIN already exists' });
   }
-  const created = taxpayersDb.insert({ tin, name, email, business_type: business_type ?? 'individual' });
+  const created = taxpayersDb.insert({ tin: normalizedTin, name, email, business_type: business_type ?? 'individual' });
   return res.status(201).json(created);
 });
 
@@ -35,6 +39,16 @@ router.put('/:id', (req: Request, res: Response) => {
   if (!existing) return res.status(404).json({ error: 'Taxpayer not found' });
 
   const patch = req.body as Partial<Omit<Taxpayer, 'id'>>;
+  if (patch.tin !== undefined) {
+    if (typeof patch.tin !== 'string' || !patch.tin.trim()) {
+      return res.status(400).json({ error: 'tin must contain a value' });
+    }
+    const normalizedTin = patch.tin.trim().toUpperCase();
+    if (taxpayersDb.all().some((taxpayer) => taxpayer.id !== existing.id && taxpayer.tin.trim().toUpperCase() === normalizedTin)) {
+      return res.status(409).json({ error: 'A taxpayer with this TIN already exists' });
+    }
+    patch.tin = normalizedTin;
+  }
   const updated = taxpayersDb.update(Number(req.params.id), patch);
   return res.json(updated);
 });

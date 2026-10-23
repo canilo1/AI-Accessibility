@@ -35,6 +35,12 @@ tax-fraud-detection/
 | `EXCESSIVE_DEPENDENTS` | More than 10 dependents claimed | Medium/High |
 | `SUDDEN_INCOME_DROP` | > 80% year-over-year income decrease | Medium |
 | `SUDDEN_DEDUCTION_SPIKE` | > 200% year-over-year deduction increase | Medium/High |
+| `THIRD_PARTY_INCOME_MISMATCH` | Reported gross income differs from attached W-2/1099/K-1 records | Medium/High |
+| `DUPLICATE_TAX_YEAR_RETURN` | More than one return exists for the taxpayer and tax year | Medium |
+
+Income records can be entered with a return and are compared with gross income in aggregate. A mismatch is flagged when it exceeds the greater of $1,000 or 5% of the attached records. These records are manually supplied; the app does not connect to employers, banks, credit-card providers, social media, or government identity systems. Duplicate tax IDs are rejected after case and whitespace normalization. A duplicate-year filing may be an amendment, so it is a review lead rather than a fraud conclusion.
+
+Automated flags only prioritize human review. Investigators can record notes, queue a return, approve it for audit, or dismiss it, and taxpayers can appeal. Whistleblower tips and other external claims are not ingested or scored; they would need independent verification through an authorized review process.
 
 Risk scores (0–100) are computed by summing severity weights:
 - Low: 5 pts  ·  Medium: 15 pts  ·  High: 30 pts  ·  Critical: 50 pts

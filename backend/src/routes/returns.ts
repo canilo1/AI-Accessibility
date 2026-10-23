@@ -35,6 +35,7 @@ router.post('/', (req: Request, res: Response) => {
     taxpayer_id, tax_year, filing_date,
     gross_income, declared_deductions, taxable_income,
     tax_paid, num_dependents, business_expenses, charitable_donations,
+    third_party_income_records,
   } = req.body as Partial<TaxReturn>;
 
   if (!taxpayer_id || !tax_year) {
@@ -42,6 +43,16 @@ router.post('/', (req: Request, res: Response) => {
   }
   if (!taxpayersDb.get(taxpayer_id)) {
     return res.status(404).json({ error: 'Taxpayer not found' });
+  }
+  const incomeRecords = third_party_income_records ?? [];
+  const validSources = ['W-2', '1099', 'K-1', 'other'];
+  if (!Array.isArray(incomeRecords) || incomeRecords.some((record) =>
+    !record || typeof record !== 'object' ||
+    !validSources.includes(record.source_type) ||
+    typeof record.payer_name !== 'string' || !record.payer_name.trim() ||
+    !Number.isFinite(record.reported_income) || record.reported_income < 0
+  )) {
+    return res.status(400).json({ error: 'Third-party income records need a valid source, payer, and non-negative amount' });
   }
 
   const newReturn = returnsDb.insert({
@@ -55,6 +66,7 @@ router.post('/', (req: Request, res: Response) => {
     num_dependents:       num_dependents       ?? 0,
     business_expenses:    business_expenses    ?? 0,
     charitable_donations: charitable_donations ?? 0,
+    third_party_income_records: incomeRecords,
     status: 'pending',
   });
 
