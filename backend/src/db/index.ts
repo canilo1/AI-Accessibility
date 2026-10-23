@@ -4,9 +4,10 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { Taxpayer, TaxReturn, FraudFlag, Appeal } from '../types';
+import { Taxpayer, TaxReturn, FraudFlag, Appeal, UserAccount, AuthSessionRecord, CustomerDocument } from '../types';
+import { DATA_DIRECTORY } from '../config';
 
-const DATA_DIR = path.join(__dirname, '..', '..', 'data');
+const DATA_DIR = DATA_DIRECTORY;
 const DB_FILE  = path.join(DATA_DIR, 'fraud.json');
 
 interface DbStore {
@@ -14,7 +15,10 @@ interface DbStore {
   tax_returns: TaxReturn[];
   fraud_flags: FraudFlag[];
   appeals:     Appeal[];
-  _seq: { taxpayers: number; tax_returns: number; fraud_flags: number; appeals: number };
+  accounts: UserAccount[];
+  sessions: AuthSessionRecord[];
+  documents: CustomerDocument[];
+  _seq: { taxpayers: number; tax_returns: number; fraud_flags: number; appeals: number; accounts: number; documents: number };
 }
 
 // ─── persistence ─────────────────────────────────────────────────────────────
@@ -27,14 +31,30 @@ function load(): DbStore {
       tax_returns: [],
       fraud_flags: [],
       appeals:     [],
-      _seq: { taxpayers: 0, tax_returns: 0, fraud_flags: 0, appeals: 0 },
+      accounts: [],
+      sessions: [],
+      documents: [],
+      _seq: { taxpayers: 0, tax_returns: 0, fraud_flags: 0, appeals: 0, accounts: 0, documents: 0 },
     };
   }
-  const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) as DbStore;
-  // Migrate: add appeals if missing (existing data)
-  if (!data.appeals) data.appeals = [];
-  if (!data._seq.appeals) data._seq.appeals = 0;
-  return data;
+  const stored = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) as Partial<DbStore>;
+  return {
+    taxpayers: stored.taxpayers ?? [],
+    tax_returns: stored.tax_returns ?? [],
+    fraud_flags: stored.fraud_flags ?? [],
+    appeals: stored.appeals ?? [],
+    accounts: stored.accounts ?? [],
+    sessions: stored.sessions ?? [],
+    documents: stored.documents ?? [],
+    _seq: {
+      taxpayers: stored._seq?.taxpayers ?? 0,
+      tax_returns: stored._seq?.tax_returns ?? 0,
+      fraud_flags: stored._seq?.fraud_flags ?? 0,
+      appeals: stored._seq?.appeals ?? 0,
+      accounts: stored._seq?.accounts ?? 0,
+      documents: stored._seq?.documents ?? 0,
+    },
+  };
 }
 
 function save(store: DbStore): void {
@@ -88,6 +108,68 @@ export const taxpayersDb = {
     _store.taxpayers = _store.taxpayers.filter((t) => t.id !== id);
     if (_store.taxpayers.length < len) { persist(); return true; }
     return false;
+  },
+};
+
+export const accountsDb = {
+  all(): UserAccount[] { return [..._store.accounts]; },
+  get(id: number): UserAccount | undefined { return _store.accounts.find((account) => account.id === id); },
+  getByEmail(email: string): UserAccount | undefined {
+    return _store.accounts.find((account) => account.email === email.toLowerCase());
+  },
+  insert(data: Omit<UserAccount, 'id' | 'created_at'>): UserAccount {
+    const account: UserAccount = { ...data, id: nextId('accounts'), created_at: new Date().toISOString() };
+    _store.accounts.push(account);
+    persist();
+    return account;
+  },
+  updateCredentials(id: number, password_salt: string, password_hash: string): boolean {
+    const account = _store.accounts.find((item) => item.id === id);
+    if (!account) return false;
+    account.password_salt = password_salt;
+    account.password_hash = password_hash;
+    persist();
+    return true;
+  },
+};
+
+export const sessionsDb = {
+  get(tokenHash: string): AuthSessionRecord | undefined {
+    return _store.sessions.find((session) => session.token_hash === tokenHash);
+  },
+  insert(session: AuthSessionRecord): void {
+    _store.sessions = _store.sessions.filter((item) => item.token_hash !== session.token_hash && item.expires_at > new Date().toISOString());
+    _store.sessions.push(session);
+    persist();
+  },
+  delete(tokenHash: string): void {
+    _store.sessions = _store.sessions.filter((session) => session.token_hash !== tokenHash);
+    persist();
+  },
+  deleteForAccount(accountId: number, exceptTokenHash?: string): void {
+    _store.sessions = _store.sessions.filter((session) => session.account_id !== accountId || session.token_hash === exceptTokenHash);
+    persist();
+  },
+};
+
+export const documentsDb = {
+  all(): CustomerDocument[] { return [..._store.documents].sort((a, b) => b.uploaded_at.localeCompare(a.uploaded_at)); },
+  byTaxpayer(taxpayerId: number): CustomerDocument[] {
+    return this.all().filter((document) => document.taxpayer_id === taxpayerId);
+  },
+  get(id: number): CustomerDocument | undefined { return _store.documents.find((document) => document.id === id); },
+  insert(data: Omit<CustomerDocument, 'id' | 'uploaded_at'>): CustomerDocument {
+    const document: CustomerDocument = { ...data, id: nextId('documents'), uploaded_at: new Date().toISOString() };
+    _store.documents.push(document);
+    persist();
+    return document;
+  },
+  update(id: number, patch: Pick<CustomerDocument, 'status' | 'reviewed_by' | 'reviewed_at' | 'review_notes'>): CustomerDocument | undefined {
+    const document = this.get(id);
+    if (!document) return undefined;
+    Object.assign(document, patch);
+    persist();
+    return document;
   },
 };
 

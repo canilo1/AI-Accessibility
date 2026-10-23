@@ -7,6 +7,41 @@ export interface Taxpayer {
   registered_at: string;
 }
 
+export type AccountRole = 'admin' | 'customer';
+
+export interface UserAccount {
+  id: number;
+  email: string;
+  display_name: string;
+  role: AccountRole;
+  taxpayer_id?: number;
+  password_salt: string;
+  password_hash: string;
+  created_at: string;
+}
+
+export interface AuthSessionRecord {
+  token_hash: string;
+  account_id: number;
+  expires_at: string;
+}
+
+export interface CustomerDocument {
+  id: number;
+  taxpayer_id: number;
+  tax_year: number;
+  category: 'tax_return' | 'income_statement' | 'expense_receipt' | 'identity' | 'other';
+  original_name: string;
+  file_name: string;
+  mime_type: string;
+  size: number;
+  status: 'awaiting_review' | 'in_review' | 'approved' | 'needs_info';
+  uploaded_at: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+}
+
 export interface ThirdPartyIncomeRecord {
   source_type: 'W-2' | '1099' | 'K-1' | 'other';
   payer_name: string;

@@ -7,6 +7,46 @@ export interface Taxpayer {
   registered_at: string;
 }
 
+export interface AuthAccount {
+  id: number;
+  email: string;
+  display_name: string;
+  role: 'admin' | 'customer';
+  taxpayer_id?: number;
+}
+
+export interface PortalAccount {
+  id: number;
+  email: string;
+  display_name: string;
+  taxpayer_id: number;
+  created_at: string;
+}
+
+export interface CustomerDocument {
+  id: number;
+  taxpayer_id: number;
+  tax_year: number;
+  category: 'tax_return' | 'income_statement' | 'expense_receipt' | 'identity' | 'other';
+  original_name: string;
+  mime_type: string;
+  size: number;
+  status: 'awaiting_review' | 'in_review' | 'approved' | 'needs_info';
+  uploaded_at: string;
+  reviewed_by?: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  taxpayer_name?: string;
+  taxpayer_email?: string;
+}
+
+export interface CustomerDashboardData {
+  taxpayer: { id: number; name: string; email: string };
+  returns: TaxReturn[];
+  documents: CustomerDocument[];
+  appeals: Appeal[];
+}
+
 export interface ThirdPartyIncomeRecord {
   source_type: 'W-2' | '1099' | 'K-1' | 'other';
   payer_name: string;

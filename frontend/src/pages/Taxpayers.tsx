@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { api } from '../api';
-import type { Taxpayer } from '../types';
+import type { Taxpayer, PortalAccount } from '../types';
 
 const card = {
   background: '#fff',
@@ -18,12 +18,19 @@ const emptyForm: Omit<Taxpayer, 'id' | 'registered_at'> = {
 
 export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name: string) => void }) {
   const [list, setList] = useState<Taxpayer[]>([]);
+  const [portalAccounts, setPortalAccounts] = useState<PortalAccount[]>([]);
   const [form, setForm] = useState<Omit<Taxpayer, 'id' | 'registered_at'>>(emptyForm);
   const [editing, setEditing] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
+  const [provisioningId, setProvisioningId] = useState<number | null>(null);
+  const [initialPassword, setInitialPassword] = useState('');
+  const [portalMessage, setPortalMessage] = useState('');
 
-  const load = () => api.getTaxpayers().then(setList).catch((e) => setError(e.message));
+  const load = () => {
+    api.getTaxpayers().then(setList).catch((e) => setError(e.message));
+    api.getPortalAccounts().then(setPortalAccounts).catch(() => {});
+  };
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -57,6 +64,20 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
     load();
   };
 
+  const handleProvision = async (taxpayerId: number) => {
+    setError('');
+    setPortalMessage('');
+    try {
+      await api.provisionPortalAccount(taxpayerId, initialPassword);
+      setPortalMessage('Portal account created. Share the initial password with the customer through a separate secure channel.');
+      setProvisioningId(null);
+      setInitialPassword('');
+      load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to provision portal account');
+    }
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -68,6 +89,9 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
           {showForm ? 'Cancel' : '+ Add Taxpayer'}
         </button>
       </div>
+
+      {error && <p role="alert" style={{ color: '#dc2626', margin: 0 }}>{error}</p>}
+      {portalMessage && <p role="status" style={{ color: '#276b56', margin: 0 }}>{portalMessage}</p>}
 
       {showForm && (
         <div style={card}>
@@ -117,19 +141,23 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
             <thead>
               <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
-                {['TIN', 'Name', 'Email', 'Type', 'Registered', ''].map((h) => (
+                {['TIN', 'Name', 'Email', 'Type', 'Registered', 'Portal', ''].map((h) => (
                   <th key={h} style={{ textAlign: 'left', padding: '8px 10px', color: '#6b7280', fontWeight: 600 }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {list.map((t) => (
-                <tr key={t.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                <Fragment key={t.id}>
+                <tr style={{ borderBottom: '1px solid #f3f4f6' }}>
                   <td style={{ padding: '8px 10px', fontFamily: 'monospace', fontSize: 12 }}>{t.tin}</td>
                   <td style={{ padding: '8px 10px', fontWeight: 600 }}>{t.name}</td>
                   <td style={{ padding: '8px 10px', color: '#6b7280' }}>{t.email}</td>
                   <td style={{ padding: '8px 10px' }}>{t.business_type.replace('_', ' ')}</td>
                   <td style={{ padding: '8px 10px', color: '#6b7280' }}>{t.registered_at.slice(0, 10)}</td>
+                  <td style={{ padding: '8px 10px', color: portalAccounts.some((account) => account.taxpayer_id === t.id) ? '#276b56' : '#78857d', whiteSpace: 'nowrap' }}>
+                    {portalAccounts.some((account) => account.taxpayer_id === t.id) ? 'Active' : 'Not set up'}
+                  </td>
                   <td style={{ padding: '8px 10px', display: 'flex', gap: 6 }}>
                     <button onClick={() => onViewReturns(t.id, t.name)}
                       style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid #2563eb', color: '#2563eb', cursor: 'pointer', background: '#eff6ff' }}>
@@ -139,12 +167,31 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
                       style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid #d1d5db', cursor: 'pointer', background: '#fff' }}>
                       Edit
                     </button>
+                    {!portalAccounts.some((account) => account.taxpayer_id === t.id) && (
+                      <button onClick={() => { setProvisioningId(provisioningId === t.id ? null : t.id); setInitialPassword(''); setPortalMessage(''); }}
+                        style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid #276b56', color: '#276b56', cursor: 'pointer', background: '#edf5ef', whiteSpace: 'nowrap' }}>
+                        Set up portal
+                      </button>
+                    )}
                     <button onClick={() => handleDelete(t.id, t.name)}
                       style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid #fca5a5', color: '#dc2626', cursor: 'pointer', background: '#fef2f2' }}>
                       Delete
                     </button>
                   </td>
                 </tr>
+                {provisioningId === t.id && (
+                  <tr><td colSpan={7} style={{ padding: '12px 10px', background: '#f5f8f5', borderBottom: '1px solid #dfe5df' }}>
+                    <form onSubmit={(event) => { event.preventDefault(); void handleProvision(t.id); }} style={{ display: 'flex', alignItems: 'end', gap: 10, flexWrap: 'wrap' }}>
+                      <div style={{ color: '#52645a', fontSize: 13, marginRight: 8 }}>Portal login: <strong>{t.email}</strong></div>
+                      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 600 }}>Initial password
+                        <input required minLength={12} type="password" value={initialPassword} onChange={(event) => setInitialPassword(event.target.value)} autoComplete="new-password" style={{ minWidth: 240, padding: '7px 9px', border: '1px solid #becbc2', borderRadius: 4 }} />
+                      </label>
+                      <button type="submit" style={{ padding: '8px 12px', border: 0, borderRadius: 4, background: '#276b56', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Create access</button>
+                      <button type="button" onClick={() => setProvisioningId(null)} style={{ padding: '7px 10px', border: '1px solid #becbc2', borderRadius: 4, background: '#fff', cursor: 'pointer' }}>Cancel</button>
+                    </form>
+                  </td></tr>
+                )}
+                </Fragment>
               ))}
             </tbody>
           </table>

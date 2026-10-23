@@ -1,8 +1,13 @@
-const BASE = 'http://localhost:4000/api';
+const BASE = import.meta.env.VITE_API_URL ?? '/api';
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const headers = new Headers(options?.headers);
+  if (!(options?.body instanceof FormData) && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
   const res = await fetch(`${BASE}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    headers,
     ...options,
   });
   if (!res.ok) {
@@ -14,6 +19,32 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 }
 
 export const api = {
+  // Authentication
+  getSession: () => request<import('./types').AuthAccount>('/auth/me'),
+  login: (data: { email: string; password: string }) =>
+    request<import('./types').AuthAccount>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  changePassword: (current_password: string, new_password: string) =>
+    request<{ message: string }>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
+  logout: () => request<void>('/auth/logout', { method: 'POST' }),
+
+  // Customer portal
+  getCustomerDashboard: () => request<import('./types').CustomerDashboardData>('/customer/dashboard'),
+  uploadDocument: (form: FormData) =>
+    request<import('./types').CustomerDocument>('/customer/documents', { method: 'POST', body: form }),
+  submitCustomerAppeal: (tax_return_id: number, statement: string) =>
+    request<import('./types').Appeal>('/customer/appeals', { method: 'POST', body: JSON.stringify({ tax_return_id, statement }) }),
+  getAdminDocuments: () => request<import('./types').CustomerDocument[]>('/admin/documents'),
+  updateDocument: (id: number, status: import('./types').CustomerDocument['status'], review_notes: string) =>
+    request<import('./types').CustomerDocument>(`/admin/documents/${id}`, { method: 'PATCH', body: JSON.stringify({ status, review_notes }) }),
+  getPortalAccounts: () => request<import('./types').PortalAccount[]>('/admin/customer-accounts'),
+  provisionPortalAccount: (taxpayer_id: number, password: string) =>
+    request<import('./types').PortalAccount>('/admin/customer-accounts', { method: 'POST', body: JSON.stringify({ taxpayer_id, password }) }),
+  downloadDocument: async (id: number) => {
+    const response = await fetch(`${BASE}/documents/${id}/download`, { credentials: 'include' });
+    if (!response.ok) throw new Error('Unable to download document');
+    return response.blob();
+  },
+
   // Dashboard
   getDashboard: () => request<import('./types').DashboardData>('/dashboard'),
 

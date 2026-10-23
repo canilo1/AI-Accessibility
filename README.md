@@ -52,6 +52,11 @@ Risk scores (0–100) are computed by summing severity weights:
 ```bash
 cd backend
 npm install
+```
+
+Create `backend/.env` from `.env.example` and set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` of at least 12 characters. There is no default administrator password. Then start the backend:
+
+```bash
 npm run seed    # Loads 8 taxpayers + 14 tax returns with fraud flags
 npm run dev     # Starts API on http://localhost:4000
 ```
@@ -64,11 +69,32 @@ npm install
 npm run dev     # Opens dashboard on http://localhost:5173
 ```
 
+### Portal accounts
+
+- Sign in as an administrator using the credentials from `backend/.env`.
+- In **Taxpayers**, create or verify a taxpayer record using the customer's email and tax ID.
+- Select **Set up portal** on that taxpayer and set an initial password. Share it with the customer through a separate secure channel.
+- Customers cannot self-register. Customers can sign in and see only their linked tax history, submit PDF/JPEG/PNG documents up to 10 MB, download their own documents, change their password, and submit appeals for eligible returns.
+- In **Documents**, administrators can review uploads, request more information, accept documents, and leave customer-visible notes.
+
+Customer self-registration only succeeds when both the email and tax ID match an existing taxpayer record. Uploaded files are stored in `backend/data/uploads/` outside the web root and are served only through authenticated, ownership-checked download routes. Local JSON and uploaded documents are prototype storage; use a managed database, private object storage, backups, HTTPS, secret management, and an appropriate retention policy before handling real taxpayer data in production.
+
 ## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/dashboard` | Dashboard stats, recent flags, top rules |
+| POST | `/api/auth/login` | Sign in; establishes an HttpOnly session |
+| GET | `/api/auth/me` | Get the current account |
+| POST | `/api/auth/logout` | End the current session |
+| POST | `/api/auth/change-password` | Change password and revoke other sessions |
+| GET | `/api/customer/dashboard` | Customer's own tax history, documents, and appeals |
+| POST | `/api/customer/documents` | Upload a customer document for review |
+| POST | `/api/customer/appeals` | Submit an appeal for an owned return |
+| GET | `/api/admin/documents` | Admin document review queue |
+| PATCH | `/api/admin/documents/:id` | Update document status and customer note |
+| POST | `/api/admin/customer-accounts` | Provision portal access for an existing taxpayer |
+| GET | `/api/documents/:id/download` | Download an owned document (admin or customer) |
+| GET | `/api/dashboard` | Admin dashboard stats, recent flags, top rules |
 | GET | `/api/taxpayers` | List all taxpayers |
 | POST | `/api/taxpayers` | Create taxpayer |
 | PUT | `/api/taxpayers/:id` | Update taxpayer |
