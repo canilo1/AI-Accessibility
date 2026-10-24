@@ -1,7 +1,7 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { Router, Request, Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import { accountsDb, taxpayersDb, sessionsDb } from '../db';
+import { accountsDb, invitationsDb, taxpayersDb, sessionsDb } from '../db';
 import { accountFrom, hashSessionToken, requireAuth, sessionTokenFrom, SESSION_COOKIE } from '../middleware/auth';
 import type { AccountRole, UserAccount } from '../types';
 
@@ -42,6 +42,52 @@ function startSession(account: UserAccount, res: Response): void {
 
 router.post('/register', (_req: Request, res: Response) => {
   return res.status(403).json({ error: 'Customer accounts must be provisioned by an administrator' });
+});
+
+router.get('/invitation/:token', (req: Request, res: Response) => {
+  const invitation = invitationsDb.get(hashSessionToken(req.params.token));
+  if (!invitation || invitation.expires_at <= new Date().toISOString()) {
+    if (invitation) invitationsDb.delete(invitation.token_hash);
+    return res.status(404).json({ error: 'This customer invitation is invalid or has expired' });
+  }
+  const taxpayer = taxpayersDb.get(invitation.taxpayer_id);
+  if (!taxpayer) return res.status(404).json({ error: 'The invited taxpayer profile is unavailable' });
+  return res.json({ email: taxpayer.email, display_name: taxpayer.name, expires_at: invitation.expires_at });
+});
+
+router.post('/accept-invitation', (req: Request, res: Response) => {
+  const { token, password } = req.body as Record<string, unknown>;
+  if (typeof token !== 'string' || typeof password !== 'string') {
+    return res.status(400).json({ error: 'Invitation and password are required' });
+  }
+  if (password.length < 12 || password.length > 128) {
+    return res.status(400).json({ error: 'Password must be between 12 and 128 characters long' });
+  }
+  const invitation = invitationsDb.get(hashSessionToken(token));
+  if (!invitation || invitation.expires_at <= new Date().toISOString()) {
+    if (invitation) invitationsDb.delete(invitation.token_hash);
+    return res.status(404).json({ error: 'This customer invitation is invalid or has expired' });
+  }
+  const taxpayer = taxpayersDb.get(invitation.taxpayer_id);
+  if (!taxpayer) return res.status(404).json({ error: 'The invited taxpayer profile is unavailable' });
+  const email = taxpayer.email.trim().toLowerCase();
+  if (accountsDb.getByEmail(email)) {
+    invitationsDb.delete(invitation.token_hash);
+    return res.status(409).json({ error: 'A portal account already exists for this email' });
+  }
+
+  const salt = randomBytes(16).toString('hex');
+  const account = accountsDb.insert({
+    email,
+    display_name: taxpayer.name,
+    role: 'customer',
+    taxpayer_id: taxpayer.id,
+    password_salt: salt,
+    password_hash: passwordHash(password, salt),
+  });
+  invitationsDb.delete(invitation.token_hash);
+  startSession(account, res);
+  return res.status(201).json(publicAccount(account));
 });
 
 router.post('/login', loginLimiter, (req: Request, res: Response) => {

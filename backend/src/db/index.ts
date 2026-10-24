@@ -4,7 +4,7 @@
  */
 import fs from 'fs';
 import path from 'path';
-import { Taxpayer, TaxReturn, FraudFlag, Appeal, UserAccount, AuthSessionRecord, CustomerDocument } from '../types';
+import { Taxpayer, TaxReturn, FraudFlag, Appeal, UserAccount, AuthSessionRecord, CustomerInvitation, CustomerDocument } from '../types';
 import { DATA_DIRECTORY } from '../config';
 
 const DATA_DIR = DATA_DIRECTORY;
@@ -17,6 +17,7 @@ interface DbStore {
   appeals:     Appeal[];
   accounts: UserAccount[];
   sessions: AuthSessionRecord[];
+  invitations: CustomerInvitation[];
   documents: CustomerDocument[];
   _seq: { taxpayers: number; tax_returns: number; fraud_flags: number; appeals: number; accounts: number; documents: number };
 }
@@ -33,6 +34,7 @@ function load(): DbStore {
       appeals:     [],
       accounts: [],
       sessions: [],
+      invitations: [],
       documents: [],
       _seq: { taxpayers: 0, tax_returns: 0, fraud_flags: 0, appeals: 0, accounts: 0, documents: 0 },
     };
@@ -45,6 +47,7 @@ function load(): DbStore {
     appeals: stored.appeals ?? [],
     accounts: stored.accounts ?? [],
     sessions: stored.sessions ?? [],
+    invitations: stored.invitations ?? [],
     documents: stored.documents ?? [],
     _seq: {
       taxpayers: stored._seq?.taxpayers ?? 0,
@@ -148,6 +151,21 @@ export const sessionsDb = {
   },
   deleteForAccount(accountId: number, exceptTokenHash?: string): void {
     _store.sessions = _store.sessions.filter((session) => session.account_id !== accountId || session.token_hash === exceptTokenHash);
+    persist();
+  },
+};
+
+export const invitationsDb = {
+  get(tokenHash: string): CustomerInvitation | undefined {
+    return _store.invitations.find((invitation) => invitation.token_hash === tokenHash);
+  },
+  insert(invitation: CustomerInvitation): void {
+    _store.invitations = _store.invitations.filter((item) => item.expires_at > new Date().toISOString());
+    _store.invitations.push(invitation);
+    persist();
+  },
+  delete(tokenHash: string): void {
+    _store.invitations = _store.invitations.filter((invitation) => invitation.token_hash !== tokenHash);
     persist();
   },
 };

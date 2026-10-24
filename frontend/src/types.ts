@@ -23,6 +23,25 @@ export interface PortalAccount {
   created_at: string;
 }
 
+export interface AdminAccount {
+  id: number;
+  email: string;
+  display_name: string;
+  created_at: string;
+}
+
+export interface PortalInvitation {
+  email: string;
+  invite_url: string;
+  expires_at: string;
+}
+
+export interface InvitationPreview {
+  email: string;
+  display_name: string;
+  expires_at: string;
+}
+
 export interface CustomerDocument {
   id: number;
   taxpayer_id: number;

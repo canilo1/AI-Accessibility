@@ -26,6 +26,12 @@ export interface AuthSessionRecord {
   expires_at: string;
 }
 
+export interface CustomerInvitation {
+  token_hash: string;
+  taxpayer_id: number;
+  expires_at: string;
+}
+
 export interface CustomerDocument {
   id: number;
   taxpayer_id: number;

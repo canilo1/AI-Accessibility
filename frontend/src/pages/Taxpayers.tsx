@@ -24,8 +24,8 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [provisioningId, setProvisioningId] = useState<number | null>(null);
-  const [initialPassword, setInitialPassword] = useState('');
   const [portalMessage, setPortalMessage] = useState('');
+  const [portalInviteUrl, setPortalInviteUrl] = useState('');
 
   const load = () => {
     api.getTaxpayers().then(setList).catch((e) => setError(e.message));
@@ -67,12 +67,12 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
   const handleProvision = async (taxpayerId: number) => {
     setError('');
     setPortalMessage('');
+    setPortalInviteUrl('');
     try {
-      await api.provisionPortalAccount(taxpayerId, initialPassword);
-      setPortalMessage('Portal account created. Share the initial password with the customer through a separate secure channel.');
+      const invitation = await api.createPortalInvitation(taxpayerId);
+      setPortalInviteUrl(invitation.invite_url);
+      setPortalMessage(`Invitation created for ${invitation.email}. Share the link securely; it expires in 72 hours.`);
       setProvisioningId(null);
-      setInitialPassword('');
-      load();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unable to provision portal account');
     }
@@ -168,9 +168,9 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
                       Edit
                     </button>
                     {!portalAccounts.some((account) => account.taxpayer_id === t.id) && (
-                      <button onClick={() => { setProvisioningId(provisioningId === t.id ? null : t.id); setInitialPassword(''); setPortalMessage(''); }}
+                      <button onClick={() => { setProvisioningId(provisioningId === t.id ? null : t.id); setPortalMessage(''); setPortalInviteUrl(''); }}
                         style={{ fontSize: 12, padding: '3px 10px', borderRadius: 6, border: '1px solid #276b56', color: '#276b56', cursor: 'pointer', background: '#edf5ef', whiteSpace: 'nowrap' }}>
-                        Set up portal
+                        Invite to portal
                       </button>
                     )}
                     <button onClick={() => handleDelete(t.id, t.name)}
@@ -182,11 +182,8 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
                 {provisioningId === t.id && (
                   <tr><td colSpan={7} style={{ padding: '12px 10px', background: '#f5f8f5', borderBottom: '1px solid #dfe5df' }}>
                     <form onSubmit={(event) => { event.preventDefault(); void handleProvision(t.id); }} style={{ display: 'flex', alignItems: 'end', gap: 10, flexWrap: 'wrap' }}>
-                      <div style={{ color: '#52645a', fontSize: 13, marginRight: 8 }}>Portal login: <strong>{t.email}</strong></div>
-                      <label style={{ display: 'grid', gap: 4, fontSize: 12, fontWeight: 600 }}>Initial password
-                        <input required minLength={12} type="password" value={initialPassword} onChange={(event) => setInitialPassword(event.target.value)} autoComplete="new-password" style={{ minWidth: 240, padding: '7px 9px', border: '1px solid #becbc2', borderRadius: 4 }} />
-                      </label>
-                      <button type="submit" style={{ padding: '8px 12px', border: 0, borderRadius: 4, background: '#276b56', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Create access</button>
+                      <div style={{ color: '#52645a', fontSize: 13, marginRight: 8 }}>Invitation will be issued to <strong>{t.email}</strong>. The customer will choose their password.</div>
+                      <button type="submit" style={{ padding: '8px 12px', border: 0, borderRadius: 4, background: '#276b56', color: '#fff', fontWeight: 700, cursor: 'pointer' }}>Create invitation</button>
                       <button type="button" onClick={() => setProvisioningId(null)} style={{ padding: '7px 10px', border: '1px solid #becbc2', borderRadius: 4, background: '#fff', cursor: 'pointer' }}>Cancel</button>
                     </form>
                   </td></tr>
@@ -197,6 +194,11 @@ export function Taxpayers({ onViewReturns }: { onViewReturns: (id: number, name:
           </table>
         )}
       </div>
+
+      {portalInviteUrl && <div role="status" style={{ ...card, borderColor: '#a8c9b3', marginTop: -8 }}>
+        <div style={{ color: '#276b56', fontSize: 13, fontWeight: 700, marginBottom: 7 }}>{portalMessage}</div>
+        <a href={portalInviteUrl} style={{ color: '#205540', fontSize: 13, overflowWrap: 'anywhere' }}>{portalInviteUrl}</a>
+      </div>}
     </div>
   );
 }

@@ -23,6 +23,9 @@ export const api = {
   getSession: () => request<import('./types').AuthAccount>('/auth/me'),
   login: (data: { email: string; password: string }) =>
     request<import('./types').AuthAccount>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+  getInvitation: (token: string) => request<import('./types').InvitationPreview>(`/auth/invitation/${encodeURIComponent(token)}`),
+  acceptInvitation: (token: string, password: string) =>
+    request<import('./types').AuthAccount>('/auth/accept-invitation', { method: 'POST', body: JSON.stringify({ token, password }) }),
   changePassword: (current_password: string, new_password: string) =>
     request<{ message: string }>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current_password, new_password }) }),
   logout: () => request<void>('/auth/logout', { method: 'POST' }),
@@ -39,6 +42,11 @@ export const api = {
   getPortalAccounts: () => request<import('./types').PortalAccount[]>('/admin/customer-accounts'),
   provisionPortalAccount: (taxpayer_id: number, password: string) =>
     request<import('./types').PortalAccount>('/admin/customer-accounts', { method: 'POST', body: JSON.stringify({ taxpayer_id, password }) }),
+  createPortalInvitation: (taxpayer_id: number) =>
+    request<import('./types').PortalInvitation>('/admin/customer-accounts/invitations', { method: 'POST', body: JSON.stringify({ taxpayer_id }) }),
+  getAdminAccounts: () => request<import('./types').AdminAccount[]>('/admin/customer-accounts/admins'),
+  createAdminAccount: (data: { name: string; email: string; password: string }) =>
+    request<import('./types').AdminAccount>('/admin/customer-accounts/admins', { method: 'POST', body: JSON.stringify(data) }),
   downloadDocument: async (id: number) => {
     const response = await fetch(`${BASE}/documents/${id}/download`, { credentials: 'include' });
     if (!response.ok) throw new Error('Unable to download document');

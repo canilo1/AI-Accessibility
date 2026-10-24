@@ -72,18 +72,23 @@ npm run dev     # Opens dashboard on http://localhost:5173
 ### Portal accounts
 
 - Sign in as an administrator using the credentials from `backend/.env`.
-- In **Taxpayers**, create or verify a taxpayer record using the customer's email and tax ID.
-- Select **Set up portal** on that taxpayer and set an initial password. Share it with the customer through a separate secure channel.
-- Customers cannot self-register. Customers can sign in and see only their linked tax history, submit PDF/JPEG/PNG documents up to 10 MB, download their own documents, change their password, and submit appeals for eligible returns.
+- In **Accounts**, create additional administrator accounts. Their account records are saved in `backend/data/fraud.json`.
+- In **Taxpayers**, create or verify a taxpayer record using the customer's email and tax ID, then choose **Invite to portal**. Share the generated one-time link with the customer through a separate secure channel.
+- Customers open the invitation, create their own password, and are signed in. The invitation expires after 72 hours and can only be used once. Customer accounts are saved in `backend/data/fraud.json` and linked to the verified taxpayer record.
+- Customers can sign in and see only their linked tax history, submit PDF/JPEG/PNG documents up to 10 MB, download their own documents, change their password, and submit appeals for eligible returns.
 - In **Documents**, administrators can review uploads, request more information, accept documents, and leave customer-visible notes.
 
-Customer self-registration only succeeds when both the email and tax ID match an existing taxpayer record. Uploaded files are stored in `backend/data/uploads/` outside the web root and are served only through authenticated, ownership-checked download routes. Local JSON and uploaded documents are prototype storage; use a managed database, private object storage, backups, HTTPS, secret management, and an appropriate retention policy before handling real taxpayer data in production.
+Customer account creation is invitation-only, with each invite linked to one verified taxpayer record. Uploaded files are stored in `backend/data/uploads/` outside the web root and are served only through authenticated, ownership-checked download routes. Local JSON and uploaded documents are prototype storage; use a managed database, private object storage, backups, HTTPS, secret management, and an appropriate retention policy before handling real taxpayer data in production.
+
+Account passwords are stored as salted scrypt hashes; session and invitation tokens are stored as SHA-256 hashes. The first administrator is bootstrapped from environment variables; additional administrator records are created by an authenticated administrator.
 
 ## API Reference
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | POST | `/api/auth/login` | Sign in; establishes an HttpOnly session |
+| GET | `/api/auth/invitation/:token` | Check a one-time customer invitation |
+| POST | `/api/auth/accept-invitation` | Create customer account and sign in |
 | GET | `/api/auth/me` | Get the current account |
 | POST | `/api/auth/logout` | End the current session |
 | POST | `/api/auth/change-password` | Change password and revoke other sessions |
@@ -93,6 +98,8 @@ Customer self-registration only succeeds when both the email and tax ID match an
 | GET | `/api/admin/documents` | Admin document review queue |
 | PATCH | `/api/admin/documents/:id` | Update document status and customer note |
 | POST | `/api/admin/customer-accounts` | Provision portal access for an existing taxpayer |
+| POST | `/api/admin/customer-accounts/invitations` | Create a 72-hour customer invitation |
+| POST | `/api/admin/customer-accounts/admins` | Create an additional administrator account |
 | GET | `/api/documents/:id/download` | Download an owned document (admin or customer) |
 | GET | `/api/dashboard` | Admin dashboard stats, recent flags, top rules |
 | GET | `/api/taxpayers` | List all taxpayers |

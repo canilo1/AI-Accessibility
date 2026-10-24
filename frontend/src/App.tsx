@@ -7,10 +7,11 @@ import { Returns } from './pages/Returns';
 import { ReturnDetail } from './pages/ReturnDetail';
 import { Appeals } from './pages/Appeals';
 import { AdminDocuments } from './pages/AdminDocuments';
+import { Accounts } from './pages/Accounts';
 import { CustomerPortal } from './pages/CustomerPortal';
 import { Login } from './pages/Login';
 
-type Page = 'dashboard' | 'taxpayers' | 'returns' | 'return-detail' | 'appeals' | 'documents';
+type Page = 'dashboard' | 'taxpayers' | 'returns' | 'return-detail' | 'appeals' | 'documents' | 'accounts';
 
 const NAV: { id: Page; label: string; icon: string }[] = [
   { id: 'dashboard', label: 'Dashboard',   icon: '📊' },
@@ -18,11 +19,13 @@ const NAV: { id: Page; label: string; icon: string }[] = [
   { id: 'returns',   label: 'Tax Returns', icon: '📋' },
   { id: 'documents', label: 'Documents',   icon: '📁' },
   { id: 'appeals',   label: 'Appeals',     icon: '📩' },
+  { id: 'accounts',  label: 'Accounts',    icon: '🔐' },
 ];
 
 export default function App() {
+  const [hasInvitation] = useState(() => new URLSearchParams(window.location.search).has('invite'));
   const [account, setAccount] = useState<AuthAccount | null>(null);
-  const [authReady, setAuthReady] = useState(false);
+  const [authReady, setAuthReady] = useState(hasInvitation);
   const [authError, setAuthError] = useState('');
   const [page, setPage]                         = useState<Page>('dashboard');
   const [returnDetailId, setReturnDetailId]     = useState<number | null>(null);
@@ -30,6 +33,7 @@ export default function App() {
   const [filterTaxpayerName, setFilterTaxpayerName] = useState<string | undefined>();
 
   useEffect(() => {
+    if (hasInvitation) return;
     let active = true;
     api.getSession()
       .then((session) => { if (active) setAccount(session); })
@@ -38,7 +42,7 @@ export default function App() {
       })
       .finally(() => { if (active) setAuthReady(true); });
     return () => { active = false; };
-  }, []);
+  }, [hasInvitation]);
 
   const signOut = async () => {
     try { await api.logout(); } catch { /* Expired sessions are already invalid. */ }
@@ -129,6 +133,7 @@ export default function App() {
           <Taxpayers onViewReturns={goToReturnsForTaxpayer} />
         )}
         {page === 'documents' && <AdminDocuments />}
+        {page === 'accounts' && <Accounts />}
         {page === 'return-detail' && returnDetailId !== null && (
           <ReturnDetail
             returnId={returnDetailId}
