@@ -1,6 +1,6 @@
-# 🛡️ FraudGuard — Tax Fraud Detection System
+# FairTax — Explainable Tax Review Prototype
 
-A full-stack tax fraud detection application with a rule-based anomaly scoring engine, REST API, and React dashboard.
+A prototype for identifying unusual tax-return patterns, explaining each rule signal, and supporting human review. FairTax is not an automated fraud determination or enforcement system.
 
 ## Architecture
 
@@ -21,7 +21,7 @@ tax-fraud-detection/
         └── types.ts     # Shared types
 ```
 
-## Fraud Detection Rules
+## Review Signal Rules
 
 | Rule Code | Description | Severity |
 |-----------|-------------|----------|
@@ -40,9 +40,27 @@ tax-fraud-detection/
 
 Income records can be entered with a return and are compared with gross income in aggregate. A mismatch is flagged when it exceeds the greater of $1,000 or 5% of the attached records. These records are manually supplied; the app does not connect to employers, banks, credit-card providers, social media, or government identity systems. Duplicate tax IDs are rejected after case and whitespace normalization. A duplicate-year filing may be an amendment, so it is a review lead rather than a fraud conclusion.
 
-Automated flags only prioritize human review. Investigators can record notes, queue a return, approve it for audit, or dismiss it, and taxpayers can appeal. Whistleblower tips and other external claims are not ingested or scored; they would need independent verification through an authorized review process.
+Automated flags only prioritize human review. Investigators can record notes, queue a return, approve it for audit, or dismiss it, and taxpayers can appeal. The status override API is disabled; audit approval must follow the named investigator action workflow. A return with no configured signals is labeled **No rule signal**, not compliant or cleared by the system.
 
-Risk scores (0–100) are computed by summing severity weights:
+## Fairness, Explainability, and Privacy
+
+- Every signal includes a rule code, a factual description, and a plain-language explanation. Explanations identify the threshold and note that legitimate circumstances may account for the pattern.
+- The dashboard reports live observed flag rates by business category and a separate synthetic benchmark. Live flag rates are descriptive and are not false-positive rates. Business category is not a demographic proxy; the prototype has no protected-class data and cannot evaluate racial disparities.
+- The synthetic benchmark contains 5 hand-authored clean examples and 2 deliberately injected review patterns for each of 4 business categories (28 cases total). Its synthetic false-positive rate is the share of clean examples that trigger any rule; its detection rate is the share of injected patterns that trigger a rule. These examples are not real returns or verified fraud labels, and the small benchmark does not predict production accuracy or fairness.
+- `npm run seed` creates synthetic people, reserved `.test` email addresses, and fabricated tax amounts. For a fresh demo database, configure `DATA_DIRECTORY=./.local-data` in `backend/.env` before running the seed command. The local database, environment files, and uploaded documents are excluded from Git.
+- Do not enter real taxpayer documents or personal information into this hackathon prototype. Local JSON and disk uploads are not production-grade storage. Real deployments need access controls, encryption, managed storage, backups, retention limits, incident response, and legal/privacy review.
+
+Whistleblower tips and external claims are not ingested or scored. They require independent verification through an authorized review process.
+
+## Design Rationale and Sources
+
+The safeguards reflect the project brief's points about audit-selection disparities, explainability, privacy, and the cost of burdensome reviews. They are design goals, not evidence that this prototype reduces those risks.
+
+- U.S. GAO (2026), [Tax Fraud: The Federal Government Loses an Estimated $116 Billion to $304 Billion Annually](https://www.gao.gov/products/gao-26-107810), as cited in the project brief.
+- NIST (2023), [Artificial Intelligence Risk Management Framework (AI RMF 1.0)](https://nvlpubs.nist.gov/nistpubs/ai/NIST.AI.100-1.pdf).
+- The project brief cites GAO (2024) on audit-selection disparities and Belnap et al. (2022) on administrative costs of small-business audits. Those sources do not establish AI-generated false-positive rates or prove that small businesses are more likely to be incorrectly flagged by AI.
+
+Rule scores (0–100) are computed by summing fixed severity weights. They are not calibrated probabilities of fraud, intent, or noncompliance:
 - Low: 5 pts  ·  Medium: 15 pts  ·  High: 30 pts  ·  Critical: 50 pts
 
 ## Quick Start
@@ -54,10 +72,10 @@ cd backend
 npm install
 ```
 
-Create `backend/.env` from `.env.example` and set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` of at least 12 characters. There is no default administrator password. Then start the backend:
+Create `backend/.env` from `.env.example`, set `ADMIN_EMAIL` and a unique `ADMIN_PASSWORD` of at least 12 characters, and keep `DATA_DIRECTORY=./.local-data` for an isolated synthetic demo database. There is no default administrator password. Then start the backend:
 
 ```bash
-npm run seed    # Loads 8 taxpayers + 14 tax returns with fraud flags
+npm run seed    # Loads 8 synthetic taxpayers + 14 sample returns
 npm run dev     # Starts API on http://localhost:4000
 ```
 
@@ -114,7 +132,7 @@ Account passwords are stored as salted scrypt hashes; session and invitation tok
 
 ## Features
 
-- **Rule Engine** — 10 fraud detection rules covering income, deductions, tax rates, dependents, and year-over-year anomalies
+- **Rule Engine** — 12 review rules covering income, deductions, tax rates, dependents, source matching, and year-over-year anomalies
 - **Risk Scoring** — Weighted 0–100 score with Low / Medium / High / Critical levels
 - **Dashboard** — Live stats, severity distribution chart, most-triggered rules, recent flags
 - **Taxpayer Management** — Full CRUD with business type classification

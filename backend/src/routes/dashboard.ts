@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { taxpayersDb, returnsDb, flagsDb, appealsDb } from '../db';
 import type { FraudFlag } from '../types';
+import { evaluateSyntheticBenchmark } from '../engine/fairnessBenchmark';
 
 const router = Router();
 
@@ -120,6 +121,7 @@ router.get('/', (_req: Request, res: Response) => {
     appeals_summary,
     human_oversight_rate,
   };
+  const synthetic_benchmark = evaluateSyntheticBenchmark();
 
   return res.json({
     stats: { total_taxpayers, total_returns, flagged_returns, cleared_returns, pending_returns, high_risk_count, average_risk_score },
@@ -127,6 +129,7 @@ router.get('/', (_req: Request, res: Response) => {
     severity_distribution,
     top_rules,
     fairness_metrics,
+    synthetic_benchmark,
   });
 });
 

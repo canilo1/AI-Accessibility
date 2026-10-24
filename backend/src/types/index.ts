@@ -70,7 +70,7 @@ export interface TaxReturn {
   /**
    * Status lifecycle:
    *   pending → flagged (auto, by engine)
-   *           → cleared (auto, no flags)
+  *           → cleared (auto, no configured rule signals; not a compliance finding)
    *   flagged → needs_review (investigator queues it)
    *   needs_review → approved_for_audit (human sign-off)
    *              → dismissed (human clears it)
@@ -99,7 +99,7 @@ export interface FraudFlag {
 
 export interface FraudAnalysisResult {
   tax_return_id: number;
-  risk_score: number; // 0–100
+  risk_score: number; // Fixed rule-weight score, not a probability.
   risk_level: 'low' | 'medium' | 'high' | 'critical';
   flags: FraudFlag[];
   /** Human-readable summary of why this was flagged */

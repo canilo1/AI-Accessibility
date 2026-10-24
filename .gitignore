@@ -7,3 +7,4 @@ dist/
 .DS_Store
 backend/data/fraud.json
 backend/data/uploads/
+backend/.local-data/

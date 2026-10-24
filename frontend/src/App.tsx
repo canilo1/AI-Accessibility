@@ -79,8 +79,8 @@ export default function App() {
         flexShrink: 0,
       }}>
         <div style={{ padding: '24px 20px 16px', borderBottom: '1px solid #1f2937' }}>
-          <div style={{ fontSize: 18, fontWeight: 800 }}>🛡️ FraudGuard</div>
-          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Tax Fraud Detection</div>
+          <div style={{ fontSize: 18, fontWeight: 800 }}>FairTax</div>
+          <div style={{ fontSize: 11, color: '#9ca3af', marginTop: 2 }}>Tax review workspace</div>
         </div>
         <nav style={{ padding: '12px 8px', flex: 1 }}>
           {NAV.map((item) => {
@@ -125,6 +125,7 @@ export default function App() {
           <Returns
             filterTaxpayerId={filterTaxpayerId}
             filterTaxpayerName={filterTaxpayerName}
+            investigator={account.display_name}
             onViewDetail={goToReturn}
             onClearFilter={() => { setFilterTaxpayerId(undefined); setFilterTaxpayerName(undefined); }}
           />

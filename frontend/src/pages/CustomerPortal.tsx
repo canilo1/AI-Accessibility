@@ -6,7 +6,7 @@ const panel = { background: '#fff', border: '1px solid #dfe5df', borderRadius: 5
 const currentYear = new Date().getFullYear();
 const statusLabel: Record<string, string> = {
   pending: 'Submitted', flagged: 'Additional review', needs_review: 'Under review', approved_for_audit: 'Under review',
-  cleared: 'Cleared', dismissed: 'Cleared', closed: 'Closed',
+  cleared: 'No rule signal', dismissed: 'Reviewer cleared', closed: 'Closed',
 };
 const documentLabel: Record<CustomerDocument['status'], string> = {
   awaiting_review: 'Awaiting review', in_review: 'In review', approved: 'Accepted', needs_info: 'Action needed',
@@ -102,7 +102,7 @@ export function CustomerPortal({ account, onLogout }: { account: AuthAccount; on
   return (
     <main style={{ minHeight: '100vh', background: '#f3f5f2', color: '#17211c' }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, padding: '18px clamp(18px, 5vw, 72px)', background: '#163a32', color: '#fff' }}>
-        <div><strong style={{ fontSize: 17 }}>FraudGuard</strong><span style={{ marginLeft: 12, color: '#c5d6cc', fontSize: 13 }}>Customer portal</span></div>
+        <div><strong style={{ fontSize: 17 }}>FairTax</strong><span style={{ marginLeft: 12, color: '#c5d6cc', fontSize: 13 }}>Customer portal</span></div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, flexWrap: 'wrap', justifyContent: 'end' }}><span>{account.display_name}</span><button onClick={() => setShowPasswordForm(!showPasswordForm)} style={{ border: '1px solid #78978a', borderRadius: 4, padding: '7px 10px', color: '#fff', background: 'transparent', cursor: 'pointer' }}>Password</button><button onClick={onLogout} style={{ border: '1px solid #78978a', borderRadius: 4, padding: '7px 10px', color: '#fff', background: 'transparent', cursor: 'pointer' }}>Sign out</button></div>
       </header>
 

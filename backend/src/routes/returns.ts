@@ -149,16 +149,9 @@ router.post('/:id/action', (req: Request, res: Response) => {
   return res.json(updated);
 });
 
-// PATCH /api/returns/:id/status — direct status override (admin use)
-router.patch('/:id/status', (req: Request, res: Response) => {
-  const { status } = req.body as { status: TaxReturn['status'] };
-  const valid: TaxReturn['status'][] = ['pending', 'flagged', 'cleared', 'needs_review', 'approved_for_audit', 'dismissed', 'closed'];
-  if (!valid.includes(status)) {
-    return res.status(400).json({ error: `status must be one of: ${valid.join(', ')}` });
-  }
-  const updated = returnsDb.updateStatus(Number(req.params.id), status);
-  if (!updated) return res.status(404).json({ error: 'Tax return not found' });
-  return res.json({ id: Number(req.params.id), status });
+// Direct status overrides bypass the investigator audit trail.
+router.patch('/:id/status', (_req: Request, res: Response) => {
+  return res.status(405).json({ error: 'Use the investigator action workflow to change return status' });
 });
 
 export default router;

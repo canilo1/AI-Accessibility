@@ -73,8 +73,6 @@ export const api = {
     request<import('./types').TaxReturn>('/returns', { method: 'POST', body: JSON.stringify(data) }),
   analyzeReturn: (id: number) =>
     request<import('./types').FraudAnalysisResult>(`/returns/${id}/analyze`, { method: 'POST' }),
-  updateReturnStatus: (id: number, status: import('./types').TaxReturn['status']) =>
-    request<{ id: number; status: string }>(`/returns/${id}/status`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   actionReturn: (id: number, action: string, investigator?: string, notes?: string) =>
     request<import('./types').TaxReturn>(`/returns/${id}/action`, { method: 'POST', body: JSON.stringify({ action, investigator, notes }) }),
 

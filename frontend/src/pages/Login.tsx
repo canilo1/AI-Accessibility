@@ -52,7 +52,7 @@ export function Login({ onAuthenticated, initialError }: { onAuthenticated: (acc
     <main className="auth-layout" style={{ minHeight: '100vh', display: 'grid', gridTemplateColumns: 'minmax(280px, 0.85fr) minmax(360px, 1fr)', background: '#f3f5f2', color: '#17211c' }}>
       <section className="auth-brand" style={{ background: '#163a32', color: '#f1f5ed', padding: 'clamp(32px, 7vw, 88px)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 13, letterSpacing: 1.4, fontWeight: 700, textTransform: 'uppercase' }}>FraudGuard · Tax Portal</div>
+          <div style={{ fontSize: 13, letterSpacing: 1.4, fontWeight: 700, textTransform: 'uppercase' }}>FairTax · Tax Portal</div>
           <h1 style={{ maxWidth: 480, margin: '90px 0 16px', fontSize: 44, lineHeight: 1.08 }}>Tax records, reviewed with care.</h1>
           <p style={{ maxWidth: 420, color: '#c8d8ce', lineHeight: 1.7, fontSize: 15 }}>A secure workspace for customers to follow tax filings and submit documents, and for administrators to manage review.</p>
         </div>

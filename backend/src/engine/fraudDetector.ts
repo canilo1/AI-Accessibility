@@ -35,7 +35,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'HIGH_DEDUCTION_RATIO',
           description: `Deductions are ${(ratio * 100).toFixed(1)}% of gross income — above the 50% threshold.`,
-          plain_explanation: `More than half of this filer's income was claimed as deductions. While large deductions can be legitimate (for example, a business with high operating costs), a ratio this high is uncommon and may indicate inflation of deductible expenses.`,
+          plain_explanation: `More than half of the reported income was claimed as deductions. Large deductions can be legitimate, so a reviewer should compare the amount with supporting schedules and the filer's circumstances before drawing conclusions.`,
           severity: ratio > 0.8 ? 'high' : 'medium',
         };
       }
@@ -49,7 +49,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'ZERO_TAX_ON_INCOME',
           description: `Taxable income of $${r.taxable_income.toLocaleString()} reported but zero tax paid.`,
-          plain_explanation: `This filing reports significant taxable income but shows no tax was paid. Everyone with taxable income above a certain threshold is required to pay some tax. Paying nothing may indicate unreported credits, errors, or deliberate evasion.`,
+          plain_explanation: `This filing reports taxable income above the rule threshold but no tax paid. Credits, filing details, or data issues may explain the difference; a reviewer should verify the calculation and supporting information.`,
           severity: 'critical',
         };
       }
@@ -65,7 +65,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'LOW_EFFECTIVE_TAX_RATE',
           description: `Effective tax rate is ${(effectiveRate * 100).toFixed(2)}% on taxable income of $${r.taxable_income.toLocaleString()}.`,
-          plain_explanation: `The amount of tax paid is unusually low compared to the income reported. Someone earning more than $50,000 would typically owe more than 5% in taxes. A very low rate can indicate aggressive use of credits or shelters that may not be legal.`,
+          plain_explanation: `The reported effective rate is below this rule's 5% threshold. Credits, deductions, and filing circumstances can affect the rate, so review the return and applicable schedules before reaching a conclusion.`,
           severity: 'high',
         };
       }
@@ -81,7 +81,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'EXCESSIVE_CHARITABLE_DONATIONS',
           description: `Charitable donations ($${r.charitable_donations.toLocaleString()}) are ${(ratio * 100).toFixed(1)}% of gross income.`,
-          plain_explanation: `This filing claims charitable donations worth more than 30% of the filer's total income. While generosity is not a crime, donations at this level are statistically rare. Inflated charitable deductions are one of the most common types of tax fraud.`,
+          plain_explanation: `The claimed donations exceed 30% of reported income. This may be accurate, but the amount should be compared with the relevant documentation and filing rules.`,
           severity: ratio > 0.5 ? 'high' : 'medium',
         };
       }
@@ -95,7 +95,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'BUSINESS_EXPENSES_EXCEED_INCOME',
           description: `Business expenses ($${r.business_expenses.toLocaleString()}) exceed gross income ($${r.gross_income.toLocaleString()}).`,
-          plain_explanation: `The business expenses claimed are higher than the total income the business generated. While a startup or business at a loss can legitimately do this, it is a common method for reducing taxable income artificially and warrants verification.`,
+          plain_explanation: `The claimed business expenses exceed reported gross income. This can occur during a legitimate loss period; review the business activity and supporting records for context.`,
           severity: 'high',
         };
       }
@@ -109,7 +109,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'EXCESSIVE_DEPENDENTS',
           description: `${r.num_dependents} dependents claimed — unusually high.`,
-          plain_explanation: `This filing claims an unusually large number of dependents. Each dependent reduces taxable income, so fabricating dependents is a known fraud tactic. Claiming more than 10 dependents is rare and may indicate identity theft or fictitious family members.`,
+          plain_explanation: `The return lists more than 10 dependents, which is unusual under this rule. Family circumstances vary; verify eligibility and supporting information rather than assuming the entries are incorrect.`,
           severity: r.num_dependents > 15 ? 'high' : 'medium',
         };
       }
@@ -125,7 +125,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'INCOME_CALCULATION_MISMATCH',
           description: `Taxable income ($${r.taxable_income.toLocaleString()}) does not match gross income minus deductions ($${expected.toLocaleString()}) — discrepancy of $${delta.toLocaleString()}.`,
-          plain_explanation: `The numbers on this filing do not add up. Taxable income should equal gross income minus deductions. A large gap between the calculated and reported taxable income suggests a data entry error or deliberate manipulation of figures.`,
+          plain_explanation: `Taxable income differs from gross income minus declared deductions by more than the rule tolerance. Adjustments or schedules may explain the difference; compare the figures with the full return before drawing conclusions.`,
           severity: delta > 10000 ? 'critical' : delta > 5000 ? 'high' : 'medium',
         };
       }
@@ -173,7 +173,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'SUDDEN_INCOME_DROP',
           description: `Gross income dropped ${(drop * 100).toFixed(1)}% from ${r.tax_year - 1} ($${prev.gross_income.toLocaleString()}) to ${r.tax_year} ($${r.gross_income.toLocaleString()}).`,
-          plain_explanation: `This filer's reported income fell by more than 80% in a single year. While genuine hardship or business closure can cause this, a sudden dramatic income drop is also used to reduce tax liability artificially — especially when paired with large deductions.`,
+          plain_explanation: `Reported income fell by more than 80% in one year. A business closure, job change, or other circumstance may explain this; compare the figures with prior filings and supporting records.`,
           severity: 'medium',
         };
       }
@@ -190,7 +190,7 @@ const RULES: Rule[] = [
         return {
           rule_code: 'SUDDEN_DEDUCTION_SPIKE',
           description: `Deductions increased by ${(increase * 100).toFixed(0)}% from ${r.tax_year - 1} to ${r.tax_year}.`,
-          plain_explanation: `This filer's deductions tripled or more compared to the previous year with no obvious change in circumstances. A sudden spike in deductions — without a corresponding change in income or business activity — is a strong signal of potential fraud.`,
+          plain_explanation: `Deductions increased sharply compared with the previous year. A change in business or personal circumstances may explain it; check the supporting records and ask for context if needed.`,
           severity: increase > 5 ? 'high' : 'medium',
         };
       }
@@ -226,20 +226,20 @@ function riskLevel(score: number): FraudAnalysisResult['risk_level'] {
 function buildSummary(flags: RuleResult[], score: number, level: string): string {
   const triggered = flags.filter(Boolean);
   if (triggered.length === 0) {
-    return 'No unusual patterns were detected in this filing. It does not require additional review based on the current rules.';
+    return 'No configured review signals were triggered. This limited ruleset cannot establish that a return is accurate or compliant.';
   }
   const criticalCount = triggered.filter((f) => f!.severity === 'critical').length;
   const highCount     = triggered.filter((f) => f!.severity === 'high').length;
   const parts: string[] = [];
 
-  if (criticalCount > 0) parts.push(`${criticalCount} critical issue${criticalCount > 1 ? 's' : ''}`);
-  if (highCount > 0)     parts.push(`${highCount} high-severity issue${highCount > 1 ? 's' : ''}`);
+  if (criticalCount > 0) parts.push(`${criticalCount} critical-severity signal${criticalCount > 1 ? 's' : ''}`);
+  if (highCount > 0)     parts.push(`${highCount} high-severity signal${highCount > 1 ? 's' : ''}`);
   const remaining = triggered.length - criticalCount - highCount;
-  if (remaining > 0)     parts.push(`${remaining} lower-severity concern${remaining > 1 ? 's' : ''}`);
+  if (remaining > 0)     parts.push(`${remaining} lower-severity signal${remaining > 1 ? 's' : ''}`);
 
-  return `This filing was flagged for human review with a risk score of ${score}/100 (${level} risk). ` +
+  return `This filing was flagged for human review with a rule score of ${score}/100 (${level} signal level). ` +
     `The system detected ${parts.join(', ')}. ` +
-    `This does not mean the filer has committed fraud — it means an investigator should examine this filing before any action is taken. ` +
+    `This is not a finding of fraud or wrongdoing. A reviewer should examine the filing and supporting evidence before any action is taken. ` +
     `The filer has the right to submit an explanation or appeal.`;
 }
 

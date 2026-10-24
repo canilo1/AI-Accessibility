@@ -33,11 +33,13 @@ const NUM_FIELDS: { key: keyof FormData; label: string }[] = [
 export function Returns({
   filterTaxpayerId,
   filterTaxpayerName,
+  investigator,
   onViewDetail,
   onClearFilter,
 }: {
   filterTaxpayerId?: number;
   filterTaxpayerName?: string;
+  investigator: string;
   onViewDetail: (id: number) => void;
   onClearFilter: () => void;
 }) {
@@ -85,8 +87,13 @@ export function Returns({
   };
 
   const handleStatus = async (id: number, status: TaxReturn['status']) => {
-    await api.updateReturnStatus(id, status);
-    load();
+    const action = status === 'needs_review' ? 'queue_review' : 'dismiss';
+    try {
+      await api.actionReturn(id, action, investigator, status === 'needs_review' ? 'Queued from the returns review list.' : 'Dismissed from the returns review list.');
+      load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to update review status');
+    }
   };
 
   return (

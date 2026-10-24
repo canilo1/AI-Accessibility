@@ -160,11 +160,11 @@ export function ReturnDetail({ returnId, onBack }: { returnId: number; onBack: (
 
         {/* Risk analysis & workflow */}
         <div style={{ ...card, flex: 1, minWidth: 280 }}>
-          <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700 }}>Risk Analysis</h3>
+          <h3 style={{ margin: '0 0 12px', fontSize: 15, fontWeight: 700 }}>Review Signals</h3>
 
           {riskScore !== null && (
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>Risk Score</div>
+              <div style={{ fontSize: 13, color: '#6b7280', marginBottom: 6 }}>Rule score · not a probability</div>
               <RiskScore score={riskScore} />
               {riskLevel && <div style={{ marginTop: 6 }}><SeverityBadge severity={riskLevel} /></div>}
             </div>
@@ -225,7 +225,7 @@ export function ReturnDetail({ returnId, onBack }: { returnId: number; onBack: (
 
           {/* Flag list */}
           {flags.length === 0 ? (
-            <p style={{ color: '#16a34a', fontWeight: 600, margin: 0 }}>✔ No fraud indicators detected</p>
+            <p style={{ color: '#276b56', fontWeight: 600, margin: 0 }}>No configured review signals were triggered. This does not guarantee that the return is error-free or compliant.</p>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {flags.map((flag, i) => (

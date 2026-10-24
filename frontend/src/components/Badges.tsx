@@ -44,6 +44,13 @@ export function StatusBadge({ status }: { status: string }) {
     dismissed:          { bg: '#f0fdf4', color: '#16a34a' },
     closed:             { bg: '#f3f4f6', color: '#6b7280' },
   };
+  const LABELS: Record<string, string> = {
+    flagged: 'Review signal',
+    cleared: 'No rule signal',
+    needs_review: 'In human review',
+    approved_for_audit: 'Approved for audit',
+    dismissed: 'Reviewer cleared',
+  };
   const style = MAP[status] ?? { bg: '#f3f4f6', color: '#374151' };
   return (
     <span style={{
@@ -58,7 +65,7 @@ export function StatusBadge({ status }: { status: string }) {
       background: style.bg,
       border: `1px solid ${style.color}`,
     }}>
-      {status}
+      {LABELS[status] ?? status.replaceAll('_', ' ')}
     </span>
   );
 }

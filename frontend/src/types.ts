@@ -107,6 +107,7 @@ export interface FraudFlag {
 
 export interface FraudAnalysisResult {
   tax_return_id: number;
+  /** Sum of fixed rule weights, not a probability or finding of fraud. */
   risk_score: number;
   risk_level: 'low' | 'medium' | 'high' | 'critical';
   flags: FraudFlag[];
@@ -135,6 +136,21 @@ export interface FairnessMetrics {
   human_oversight_rate: number;
 }
 
+export interface SyntheticBenchmark {
+  label: string;
+  interpretation: string;
+  total_cases: number;
+  business_types: {
+    business_type: Taxpayer['business_type'];
+    clean_cases: number;
+    clean_cases_flagged: number;
+    synthetic_false_positive_rate: number;
+    injected_pattern_cases: number;
+    injected_pattern_cases_detected: number;
+    synthetic_detection_rate: number;
+  }[];
+}
+
 export interface DashboardData {
   stats: {
     total_taxpayers: number;
@@ -157,4 +173,5 @@ export interface DashboardData {
   severity_distribution: { severity: string; count: number }[];
   top_rules: { rule_code: string; description: string; severity: string; occurrences: number }[];
   fairness_metrics: FairnessMetrics;
+  synthetic_benchmark: SyntheticBenchmark;
 }

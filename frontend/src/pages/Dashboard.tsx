@@ -57,16 +57,45 @@ export function Dashboard({ onViewReturn }: { onViewReturn: (id: number) => void
       <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
         <StatCard label="Taxpayers"       value={stats.total_taxpayers} />
         <StatCard label="Tax Returns"     value={stats.total_returns} />
-        <StatCard label="Under Review"    value={stats.flagged_returns}  color="#dc2626" />
-        <StatCard label="Cleared"         value={stats.cleared_returns}  color="#16a34a" />
+        <StatCard label="Flagged for Review" value={stats.flagged_returns} color="#a43d32" />
+        <StatCard label="No Rule Signals" value={stats.cleared_returns} color="#16a34a" sub="not a compliance finding" />
         <StatCard label="Pending"         value={stats.pending_returns}  color="#2563eb" />
-        <StatCard label="High-Risk"       value={stats.high_risk_count}  color="#ea580c" />
+        <StatCard label="High-Severity Signals" value={stats.high_risk_count} color="#ea580c" />
       </div>
+
+      <section style={{ ...card, borderLeft: '4px solid #276b56' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 750 }}>Synthetic rule benchmark</h3>
+          <span style={{ color: '#64736a', fontSize: 12 }}>{data.synthetic_benchmark.total_cases} test cases · 4 business categories</span>
+        </div>
+        <p style={{ margin: '8px 0 16px', color: '#52645a', fontSize: 13, lineHeight: 1.6 }}>
+          {data.synthetic_benchmark.interpretation} These benchmark cases are separate from live taxpayer records.
+        </p>
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ width: '100%', minWidth: 700, borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead><tr style={{ borderBottom: '1px solid #dfe5df' }}>
+              {['Business category', 'Clean cases flagged', 'Synthetic false-positive rate', 'Injected patterns detected', 'Synthetic detection rate'].map((heading) => <th key={heading} style={{ padding: '8px 10px', color: '#64736a', textAlign: 'left', fontWeight: 650 }}>{heading}</th>)}
+            </tr></thead>
+            <tbody>{data.synthetic_benchmark.business_types.map((result) => (
+              <tr key={result.business_type} style={{ borderBottom: '1px solid #edf0ed' }}>
+                <td style={{ padding: '10px', fontWeight: 650 }}>{result.business_type.replace('_', ' ')}</td>
+                <td style={{ padding: '10px' }}>{result.clean_cases_flagged}/{result.clean_cases}</td>
+                <td style={{ padding: '10px' }}>{result.synthetic_false_positive_rate}%</td>
+                <td style={{ padding: '10px' }}>{result.injected_pattern_cases_detected}/{result.injected_pattern_cases}</td>
+                <td style={{ padding: '10px' }}>{result.synthetic_detection_rate}%</td>
+              </tr>
+            ))}</tbody>
+          </table>
+        </div>
+        <p style={{ margin: '12px 0 0', color: '#52645a', fontSize: 12, lineHeight: 1.6 }}>
+          This small, hand-authored set checks rule behavior only. It is not a production false-positive or fairness evaluation and does not establish that injected patterns are fraud.
+        </p>
+      </section>
 
       <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
         {/* Severity distribution */}
         <div style={{ ...card, flex: 1, minWidth: 260 }}>
-          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>Flag Severity Distribution</h3>
+          <h3 style={{ margin: '0 0 16px', fontSize: 15, fontWeight: 700 }}>Review Signal Severity</h3>
           {severity_distribution.map((s) => (
             <div key={s.severity} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <div style={{ width: 80 }}><SeverityBadge severity={s.severity} /></div>
@@ -117,8 +146,8 @@ export function Dashboard({ onViewReturn }: { onViewReturn: (id: number) => void
           <h3 style={{ margin: 0, fontSize: 15, fontWeight: 800, color: '#1d4ed8' }}>Responsible AI — Fairness & Oversight Metrics</h3>
         </div>
         <p style={{ margin: '0 0 20px', fontSize: 13, color: '#6b7280', lineHeight: 1.6 }}>
-          These metrics help monitor whether the system operates fairly and whether human oversight is functioning correctly.
-          A high appeal overturn rate or dismissal rate may indicate the model is flagging too aggressively.
+          Live flag and review outcomes are descriptive operational metrics, not proof of fairness or false-positive rates.
+          A high appeal overturn or dismissal rate may warrant rule review; small counts can be unstable.
         </p>
         <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap' }}>
           {/* Oversight rates */}
@@ -131,7 +160,7 @@ export function Dashboard({ onViewReturn }: { onViewReturn: (id: number) => void
 
           {/* Flag rate by business type */}
           <div style={{ flex: 1, minWidth: 220 }}>
-            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#374151' }}>Flag Rate by Business Type</div>
+            <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: '#374151' }}>Observed Flag Rate by Business Type</div>
             {fm.flag_rate_by_type.map((t) => (
               <div key={t.business_type} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, fontSize: 13 }}>
                 <div style={{ width: 120, color: '#374151' }}>{t.business_type.replace('_', ' ')}</div>
@@ -154,6 +183,7 @@ export function Dashboard({ onViewReturn }: { onViewReturn: (id: number) => void
                 </div>
               ) : null;
             })()}
+            <p style={{ margin: '10px 0 0', color: '#6b7280', fontSize: 11, lineHeight: 1.5 }}>Business type is not a demographic proxy. This prototype has no demographic labels and cannot assess racial disparities.</p>
           </div>
 
           {/* Appeals summary */}
